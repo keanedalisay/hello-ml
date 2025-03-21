@@ -62,17 +62,19 @@
             formData.append('file', imageInput.files[0]);
 
             try {
+                result.style.display = 'block';
+                result.innerHTML = `<p>Awaiting results...</p>`;
+
                 const response = await fetch('/predict', {
                     method: 'POST',
                     body: formData
                 });
                 const data = await response.json();
                 
-                result.style.display = 'block';
                 if (data.error) {
                     result.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
                 } else {
-                    result.innerHTML = `<p>Prediction: ${data.prediction}</p><p>Name: ${data.name}</p><p>Confidence: ${data.confidence}</p>`;
+                    result.innerHTML = `<p>Prediction: ${data.prediction}</p><p>Name: ${data.name}</p><p>Confidence: ${data.confidence}</p><p>AI Analysis: ${data.info}</p>`;
                 }
             } catch (error) {
                 result.style.display = 'block';

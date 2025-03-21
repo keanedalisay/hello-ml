@@ -2,6 +2,8 @@ import os, json
 
 from flask import Flask, render_template, request, jsonify
 from PIL import Image
+from google import genai
+from dotenv import dotenv_values
 import tflite_runtime.interpreter as tflite
 import numpy as np
 
@@ -19,6 +21,13 @@ def create_app(allowed_extensions, upload_folder='uploads', model_path='model.tf
   # Initialize TFLite interpreter
   interpreter = tflite.Interpreter(model_path=os.path.join(os.getcwd(), MODEL_PATH))
   interpreter.allocate_tensors()
+
+   ## Initialize GenAI client
+  if (os.path.exists(os.path.join(os.getcwd(), ".env"))):
+    env = dotenv_values(os.path.join(os.getcwd(), ".env"))
+    client = genai.Client(api_key=env["GENAI_API_KEY"])
+  else:
+    client = genai.Client(api_key=os.environ.get("GENAI_API_KEY"))
 
   # Get input and output tensors
   input_details = interpreter.get_input_details()
@@ -78,10 +87,22 @@ def create_app(allowed_extensions, upload_folder='uploads', model_path='model.tf
         labels = json.loads(open(os.path.join(os.getcwd(), 'labels.json'), 'r').read())
         name = [obj['name'] for obj in labels if obj['label'] == predicted_class]
 
+        response = client.models.generate_content(
+          model="gemini-2.0-flash", 
+          contents=[
+             "The individual uploaded an image and the model classfied it as " + name[0] + ".",
+             "What should the individual do?",
+             "Give the individual brief information on the classification's description.",
+             "The response should be in text and paragraph form only. No formatting.",
+             "It should also be concise for the individual.",
+          ]
+        )
+
         return jsonify({
             'prediction': predicted_class,
             'name': name,
-            'confidence': f'{confidence:.2%}'
+            'confidence': f'{confidence:.2%}',
+            'info': response.text
         })
 
       except Exception as e:
